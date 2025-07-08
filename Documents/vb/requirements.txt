@@ -1,0 +1,7 @@
+openai
+flask
+requests
+gunicorn
+sounddevice
+soundfile
+scipy
