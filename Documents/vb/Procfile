@@ -1,0 +1,1 @@
+web: gunicorn Susi_Voicebot:app
