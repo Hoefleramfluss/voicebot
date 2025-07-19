@@ -29,5 +29,13 @@ from fastapi.responses import Response
 
 @app.post("/voice")
 async def voice_webhook():
-    twiml = '<?xml version="1.0" encoding="UTF-8"?><Response><Say>Hallo, willkommen beim VoiceBot!</Say></Response>'
+    twiml = '''
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Response>
+        <Start>
+            <Stream url="wss://voicebot1-515ea4753341.herokuapp.com/ws/voice" />
+        </Start>
+        <Say>Sie sind verbunden. Sprechen Sie jetzt.</Say>
+    </Response>
+    '''
     return Response(content=twiml, media_type="application/xml")
