@@ -1,11 +1,17 @@
 from google.cloud import speech_v2 as speech
 from config.config import Config
 import os
+import json
 
 class SpeechToTextClient:
     def __init__(self):
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = Config.GOOGLE_APPLICATION_CREDENTIALS
         self.client = speech.SpeechClient()
+        # Lies PROJECT_ID aus Credentials
+        with open(Config.GOOGLE_APPLICATION_CREDENTIALS, "r") as f:
+            creds = json.load(f)
+        self.project_id = creds["project_id"]
+        self.location = "global"  # ggf. aus ENV konfigurierbar
 
     def streaming_recognize(self, audio_generator, language_code="de-AT", sample_rate=8000):
         config = speech.RecognitionConfig(
@@ -16,9 +22,13 @@ class SpeechToTextClient:
         streaming_config = speech.StreamingRecognitionConfig(
             config=config,
         )
+        recognizer = f"projects/{self.project_id}/locations/{self.location}/recognizers/_"
         def request_generator():
-            # Erstes Paket: Konfiguration
-            yield speech.StreamingRecognizeRequest(streaming_config=streaming_config)
+            # Erstes Paket: Konfiguration + Recognizer
+            yield speech.StreamingRecognizeRequest(
+                recognizer=recognizer,
+                streaming_config=streaming_config
+            )
             # Danach: Audiodaten
             for chunk in audio_generator:
                 yield speech.StreamingRecognizeRequest(audio_content=chunk)
