@@ -15,7 +15,6 @@ class SpeechToTextClient:
             language_code=language_code,
         )
         def request_generator():
-            yield speech.StreamingRecognizeRequest(streaming_config=speech.StreamingRecognitionConfig(config=config))
             for chunk in audio_generator:
                 yield speech.StreamingRecognizeRequest(audio_content=chunk)
-        return self.client.streaming_recognize(requests=request_generator())
+        return self.client.streaming_recognize(config=config, requests=request_generator())
