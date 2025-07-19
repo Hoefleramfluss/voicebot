@@ -90,7 +90,16 @@ async def transcribe_audio(websocket):
     asyncio.create_task(fill_queue())
 
     try:
-        responses = stt_client.streaming_recognize(sync_audio_generator(q))
+        chunk_list = []
+        def debug_sync_audio_generator(q):
+            while True:
+                chunk = q.get()
+                if chunk is None:
+                    break
+                logger.info(f"transcribe_audio: Debug-Audio-Chunk: type={type(chunk)}, len={len(chunk)}, first_bytes={chunk[:8] if isinstance(chunk, bytes) else str(chunk)[:8]}")
+                chunk_list.append(chunk)
+                yield chunk
+        responses = stt_client.streaming_recognize(debug_sync_audio_generator(q))
         logger.info("transcribe_audio: STT-Streaming gestartet")
         intent_router = IntentRouter()
         found_result = False
@@ -110,5 +119,13 @@ async def transcribe_audio(websocket):
                     await websocket.send_json({"type": "interim", "text": result.alternatives[0].transcript})
         if not found_result:
             logger.warning("transcribe_audio: Kein finales Transkript erkannt!")
+        if not chunk_list:
+            logger.error("transcribe_audio: KEIN einziger Audio-Chunk im Stream! (Audio-Input leer)")
+        elif all((not c or (isinstance(c, bytes) and len(c)==0)) for c in chunk_list):
+            logger.error("transcribe_audio: ALLE Audio-Chunks sind leer!")
+        else:
+            logger.info(f"transcribe_audio: Insgesamt {len(chunk_list)} Audio-Chunks an Google STT geschickt.")
     except Exception as e:
         logger.error(f"transcribe_audio: Exception im STT-Flow: {e!r}")
+        if 'Exception serializing request' in str(e):
+            logger.error(f"transcribe_audio: Vermutlich ist der Audio-Stream leer oder fehlerhaft kodiert! Prüfe Audioformat und Twilio-Konfiguration.")
