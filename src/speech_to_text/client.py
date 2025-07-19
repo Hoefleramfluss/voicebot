@@ -11,7 +11,7 @@ class SpeechToTextClient:
     def streaming_recognize(self, audio_generator, language_code="de-DE", sample_rate=8000):
         from loguru import logger
         config = speech.RecognitionConfig(
-            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            encoding=speech.RecognitionConfig.AudioEncoding.MULAW,
             sample_rate_hertz=sample_rate,
             language_code=language_code,
         )
