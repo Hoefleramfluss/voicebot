@@ -22,7 +22,7 @@ async def voice_ws(websocket: WebSocket):
             unregister_session(session_id)
         notifier.send(f"Call beendet: session_id={session_id}, client={websocket.client}")
     except Exception as e:
-        logger.error(f"UNEXPECTED ERROR in ws/voice: {e}", exc_info=True)
+        logger.error(f"UNEXPECTED ERROR in ws/voice: {e!r}", exc_info=True)
         if session_id:
             unregister_session(session_id)
         notifier.send(f"Fehler in Call: session_id={session_id}, client={websocket.client}, error={e}")
