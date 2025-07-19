@@ -27,7 +27,14 @@ def root():
 
 from fastapi.responses import Response
 
+from twilio.twiml.voice_response import VoiceResponse, Start, Stream, Say, Pause
+
 @app.post("/voice")
 async def voice_webhook():
-    twiml = '<?xml version="1.0" encoding="UTF-8"?><Response><Start><Stream url="wss://voicebot1-515ea4753341.herokuapp.com/ws/voice" /></Start><Say>Sie sind verbunden. Sprechen Sie jetzt.</Say><Pause length="30"/></Response>'
-    return Response(content=twiml, media_type="application/xml")
+    response = VoiceResponse()
+    start = Start()
+    start.stream(url='wss://voicebot1-515ea4753341.herokuapp.com/ws/voice')
+    response.append(start)
+    response.say('Sie sind verbunden. Sprechen Sie jetzt.')
+    response.pause(length=30)
+    return Response(content=str(response), media_type="application/xml")
