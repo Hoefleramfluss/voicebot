@@ -1,1 +1,1 @@
-web: bash -c "echo $GOOGLE_APPLICATION_CREDENTIALS_BASE64 | base64 -d > /app/credentials.json && export GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json && uvicorn src.app:app --host=0.0.0.0 --port=\$PORT"
+web: PYTHONPATH=src bash -c "echo $GOOGLE_APPLICATION_CREDENTIALS_BASE64 | base64 -d > /app/credentials.json && export GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json && uvicorn src.app:app --host=0.0.0.0 --port=\$PORT"
