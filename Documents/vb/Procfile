@@ -1,1 +1,1 @@
-web: gunicorn Susi_Voicebot:app
+web: gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker app:app
