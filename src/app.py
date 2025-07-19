@@ -59,7 +59,7 @@ async def voice_webhook():
 @app.post("/gather")
 async def gather_callback(request: Request):
     """Verarbeitet Speech-to-Text-Ergebnisse von Twilio Gather"""
-    from src.intent.router import IntentRouter
+    from src.intents.intent_router import IntentRouter
     from loguru import logger
     
     # Form-Daten von Twilio parsen
