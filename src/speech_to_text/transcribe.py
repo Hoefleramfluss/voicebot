@@ -9,10 +9,29 @@ async def audio_stream_generator(websocket):
 
 from src.intents.intent_router import IntentRouter
 
+import queue
+import threading
+import asyncio
+
+def sync_audio_generator(q):
+    while True:
+        chunk = q.get()
+        if chunk is None:
+            break
+        yield chunk
+
 async def transcribe_audio(websocket):
     stt_client = SpeechToTextClient()
-    audio_gen = audio_stream_generator(websocket)
-    responses = stt_client.streaming_recognize(audio_gen)
+    q = queue.Queue()
+
+    async def fill_queue():
+        async for chunk in audio_stream_generator(websocket):
+            q.put(chunk)
+        q.put(None)  # End-Signal
+
+    asyncio.create_task(fill_queue())
+
+    responses = stt_client.streaming_recognize(sync_audio_generator(q))
     intent_router = IntentRouter()
     async for response in responses:
         for result in response.results:
