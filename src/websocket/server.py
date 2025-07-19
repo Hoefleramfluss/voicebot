@@ -29,6 +29,24 @@ async def voice_ws(websocket: WebSocket):
         await websocket.close()
 
 
+# --- Debug-WebSocket-Handler für Rohdaten ---
+@router.websocket("/ws/debug")
+async def debug_ws(websocket: WebSocket):
+    await websocket.accept()
+    logger.info(f"[DEBUG] Client connected: {websocket.client}")
+    try:
+        while True:
+            msg = await websocket.receive()
+            if msg["type"] == "websocket.receive":
+                if "bytes" in msg and msg["bytes"] is not None:
+                    logger.info(f"[DEBUG] Received BYTES: len={len(msg['bytes'])}")
+                if "text" in msg and msg["text"] is not None:
+                    logger.info(f"[DEBUG] Received TEXT: {msg['text']}")
+    except Exception as e:
+        logger.warning(f"[DEBUG] Exception: {e!r}")
+    finally:
+        logger.info(f"[DEBUG] Client disconnected: {websocket.client}")
+
 # --- Test-WebSocket-Handler für Echo- und Dauerverbindung ---
 @router.websocket("/ws/test")
 async def test_ws(websocket: WebSocket):
