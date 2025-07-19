@@ -11,7 +11,7 @@ class SpeechToTextClient:
         with open(Config.GOOGLE_APPLICATION_CREDENTIALS, "r") as f:
             creds = json.load(f)
         self.project_id = "bubbly-hexagon-465711-p2"
-        self.location = "global"
+        self.location = "europe-west3"
         self.recognizer_id = "ssdd"
 
     def streaming_recognize(self, audio_generator, language_code="de-AT", sample_rate=8000):
