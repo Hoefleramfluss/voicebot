@@ -15,7 +15,6 @@ class SpeechToTextClient:
         )
         streaming_config = speech.StreamingRecognitionConfig(
             config=config,
-            interim_results=True,
         )
         return self.client.streaming_recognize(
             config=streaming_config,
