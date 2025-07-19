@@ -25,6 +25,9 @@ app.include_router(twilio_router)
 def root():
     return {"status": "VoiceBot API running"}
 
+from fastapi.responses import Response
+
 @app.post("/voice")
 async def voice_webhook():
-    return {"message": "Voice endpoint active"}
+    twiml = '<?xml version="1.0" encoding="UTF-8"?><Response><Say>Hallo, willkommen beim VoiceBot!</Say></Response>'
+    return Response(content=twiml, media_type="application/xml")
