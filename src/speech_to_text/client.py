@@ -10,8 +10,9 @@ class SpeechToTextClient:
         # Lies PROJECT_ID aus Credentials
         with open(Config.GOOGLE_APPLICATION_CREDENTIALS, "r") as f:
             creds = json.load(f)
-        self.project_id = creds["project_id"]
-        self.location = "global"  # ggf. aus ENV konfigurierbar
+        self.project_id = "bubbly-hexagon-465711-p2"
+        self.location = "hoefler-vb"
+        self.recognizer_id = "ssdd"
 
     def streaming_recognize(self, audio_generator, language_code="de-AT", sample_rate=8000):
         config = speech.RecognitionConfig(
@@ -22,7 +23,7 @@ class SpeechToTextClient:
         streaming_config = speech.StreamingRecognitionConfig(
             config=config,
         )
-        recognizer = f"projects/{self.project_id}/locations/{self.location}/recognizers/_"
+        recognizer = f"projects/{self.project_id}/locations/{self.location}/recognizers/{self.recognizer_id}"
         def request_generator():
             # Erstes Paket: Konfiguration + Recognizer
             yield speech.StreamingRecognizeRequest(
