@@ -9,7 +9,7 @@ class SpeechToTextClient:
 
     def streaming_recognize(self, audio_generator, language_code="de-AT", sample_rate=8000):
         config = speech.RecognitionConfig(
-            auto_decoding_config=speech.RecognitionConfig.AutoDecodingConfig(),
+            auto_decoding_config=speech.AutoDetectDecodingConfig(),
             language_codes=[language_code],
             model="latest_long",
             sample_rate_hertz=sample_rate,
