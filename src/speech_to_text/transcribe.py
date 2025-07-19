@@ -33,7 +33,7 @@ async def audio_stream_generator(websocket, first_chunk_timeout=30):
                             logger.info(f"Decoded Twilio media.payload to bytes, len={len(decoded)}")
                             yield decoded
                         else:
-                            logger.warning("JSON received, but no media.payload field found.")
+                            logger.warning(f"JSON received, but no media.payload field found. Full event: {js}")
                     except Exception:
                         # Versuche base64 zu dekodieren, sonst ignoriere
                         try:
