@@ -5,6 +5,7 @@ from loguru import logger
 async def audio_stream_generator(websocket):
     while True:
         data = await websocket.receive_bytes()
+        logger.info(f"Raw WS data: type={type(data)}, len={len(data)}")
         yield base64.b64decode(data)
 
 from src.intents.intent_router import IntentRouter
@@ -18,6 +19,7 @@ def sync_audio_generator(q):
         chunk = q.get()
         if chunk is None:
             break
+        logger.info(f"Audio chunk: type={type(chunk)}, len={len(chunk)}")
         yield chunk
 
 async def transcribe_audio(websocket):
