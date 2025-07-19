@@ -16,7 +16,10 @@ class SpeechToTextClient:
         streaming_config = speech.StreamingRecognitionConfig(
             config=config,
         )
-        return self.client.streaming_recognize(
-            config=streaming_config,
-            requests=(speech.StreamingRecognizeRequest(audio_content=chunk) for chunk in audio_generator)
-        )
+        def request_generator():
+            # Erstes Paket: Konfiguration
+            yield speech.StreamingRecognizeRequest(streaming_config=streaming_config)
+            # Danach: Audiodaten
+            for chunk in audio_generator:
+                yield speech.StreamingRecognizeRequest(audio_content=chunk)
+        return self.client.streaming_recognize(requests=request_generator())
