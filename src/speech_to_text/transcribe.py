@@ -8,6 +8,7 @@ import base64
 import binascii
 
 async def audio_stream_generator(websocket, first_chunk_timeout=30):
+    import datetime
     logger.info("audio_stream_generator: started")
     got_data = False
     while True:
@@ -17,31 +18,36 @@ async def audio_stream_generator(websocket, first_chunk_timeout=30):
             else:
                 msg = await websocket.receive()
             got_data = True
+            now = datetime.datetime.utcnow().isoformat()
+            logger.info(f"[{now}] WS EVENT: type={msg['type']}, full: {msg}")
             if msg["type"] == "websocket.receive":
                 if "bytes" in msg and msg["bytes"] is not None:
-                    logger.info(f"Raw WS data: type=bytes, len={len(msg['bytes'])}")
+                    logger.info(f"[{now}] WS EVENT: type=bytes, len={len(msg['bytes'])}")
                     yield msg["bytes"]
                 elif "text" in msg and msg["text"] is not None:
-                    logger.info(f"Raw WS data: type=str, len={len(msg['text'])}")
-                    # Versuche, ob es ein Twilio-Media-JSON ist
+                    logger.info(f"[{now}] WS EVENT: type=str, len={len(msg['text'])}")
                     import json
                     try:
                         js = json.loads(msg["text"])
+                        event_type = js.get("event", "unknown")
+                        logger.info(f"[{now}] TWILIO EVENT: {event_type}, full: {js}")
                         if "media" in js and "payload" in js["media"]:
                             payload = js["media"]["payload"]
                             decoded = base64.b64decode(payload)
-                            logger.info(f"Decoded Twilio media.payload to bytes, len={len(decoded)}")
+                            logger.info(f"[{now}] Decoded Twilio media.payload to bytes, len={len(decoded)}")
                             yield decoded
+                        # Log all other Twilio event types explizit
+                        elif event_type in ["connected", "start", "mark", "stop", "disconnect"]:
+                            logger.info(f"[{now}] TWILIO NON-MEDIA EVENT: {event_type}, content: {js}")
                         else:
-                            logger.warning(f"JSON received, but no media.payload field found. Full event: {js}")
+                            logger.warning(f"[{now}] JSON received, but no media.payload field found. Full event: {js}")
                     except Exception:
-                        # Versuche base64 zu dekodieren, sonst ignoriere
                         try:
                             decoded = base64.b64decode(msg["text"], validate=True)
-                            logger.info(f"Decoded base64 text to bytes, len={len(decoded)}")
+                            logger.info(f"[{now}] Decoded base64 text to bytes, len={len(decoded)}")
                             yield decoded
                         except (binascii.Error, ValueError):
-                            logger.warning("Text message is not valid base64 or Twilio media JSON, ignoring.")
+                            logger.warning(f"[{now}] Text message is not valid base64 or Twilio media JSON, ignoring.")
         except asyncio.TimeoutError:
             logger.warning(f"audio_stream_generator: No audio received in {first_chunk_timeout}s, closing.")
             break
