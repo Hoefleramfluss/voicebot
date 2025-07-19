@@ -12,11 +12,6 @@ class SpeechToTextClient:
             auto_decoding_config=speech.AutoDetectDecodingConfig(),
             language_codes=[language_code],
             model="latest_long",
-
-            enable_automatic_punctuation=True,
-            enable_word_time_offsets=True,
-            enable_spoken_punctuation=True,
-            enable_spoken_emojis=True,
         )
         streaming_config = speech.StreamingRecognitionConfig(
             config=config,
