@@ -13,7 +13,7 @@ class SpeechToTextClient:
             language_codes=[language_code],
             model="latest_long",
             sample_rate_hertz=sample_rate,
-            encoding=speech.RecognitionConfig.AudioEncoding.MULAW,
+
             enable_automatic_punctuation=True,
             enable_word_time_offsets=True,
             enable_spoken_punctuation=True,
