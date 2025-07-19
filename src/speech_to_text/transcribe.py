@@ -3,6 +3,7 @@ from src.speech_to_text.client import SpeechToTextClient
 from loguru import logger
 
 async def audio_stream_generator(websocket):
+    logger.info("audio_stream_generator: started")
     while True:
         data = await websocket.receive_bytes()
         logger.info(f"Raw WS data: type={type(data)}, len={len(data)}")
@@ -27,9 +28,13 @@ async def transcribe_audio(websocket):
     q = queue.Queue()
 
     async def fill_queue():
-        async for chunk in audio_stream_generator(websocket):
-            q.put(chunk)
-        q.put(None)  # End-Signal
+        try:
+            async for chunk in audio_stream_generator(websocket):
+                q.put(chunk)
+        except Exception as e:
+            logger.warning(f"fill_queue: {e!r}")
+        finally:
+            q.put(None)  # End-Signal
 
     asyncio.create_task(fill_queue())
 
