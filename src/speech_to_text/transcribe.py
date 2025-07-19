@@ -23,13 +23,25 @@ async def audio_stream_generator(websocket, first_chunk_timeout=30):
                     yield msg["bytes"]
                 elif "text" in msg and msg["text"] is not None:
                     logger.info(f"Raw WS data: type=str, len={len(msg['text'])}")
-                    # Versuche base64 zu dekodieren, sonst ignoriere
+                    # Versuche, ob es ein Twilio-Media-JSON ist
+                    import json
                     try:
-                        decoded = base64.b64decode(msg["text"], validate=True)
-                        logger.info(f"Decoded base64 text to bytes, len={len(decoded)}")
-                        yield decoded
-                    except (binascii.Error, ValueError):
-                        logger.warning("Text message is not valid base64, ignoring.")
+                        js = json.loads(msg["text"])
+                        if "media" in js and "payload" in js["media"]:
+                            payload = js["media"]["payload"]
+                            decoded = base64.b64decode(payload)
+                            logger.info(f"Decoded Twilio media.payload to bytes, len={len(decoded)}")
+                            yield decoded
+                        else:
+                            logger.warning("JSON received, but no media.payload field found.")
+                    except Exception:
+                        # Versuche base64 zu dekodieren, sonst ignoriere
+                        try:
+                            decoded = base64.b64decode(msg["text"], validate=True)
+                            logger.info(f"Decoded base64 text to bytes, len={len(decoded)}")
+                            yield decoded
+                        except (binascii.Error, ValueError):
+                            logger.warning("Text message is not valid base64 or Twilio media JSON, ignoring.")
         except asyncio.TimeoutError:
             logger.warning(f"audio_stream_generator: No audio received in {first_chunk_timeout}s, closing.")
             break
