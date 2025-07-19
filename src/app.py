@@ -33,7 +33,14 @@ from twilio.twiml.voice_response import VoiceResponse, Start, Stream, Say, Pause
 async def voice_webhook():
     response = VoiceResponse()
     start = Start()
-    start.stream(url='wss://voicebot1-515ea4753341.herokuapp.com/ws/voice')
+    # Erweiterte Media Streams-Konfiguration mit expliziten Parametern
+    start.stream(
+        url='wss://voicebot1-515ea4753341.herokuapp.com/ws/voice',
+        name='VoiceBotStream',
+        track='both_tracks'  # Explizit beide Audio-Tracks (inbound + outbound)
+    )
     response.append(start)
     response.say('Bitte sprechen Sie jetzt.')
+    # Längere Pause, damit Media Streams Zeit hat zu starten
+    response.pause(length=10)
     return Response(content=str(response), media_type="application/xml")
