@@ -24,3 +24,7 @@ app.include_router(twilio_router)
 @app.get("/")
 def root():
     return {"status": "VoiceBot API running"}
+
+@app.post("/voice")
+async def voice_webhook():
+    return {"message": "Voice endpoint active"}
