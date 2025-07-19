@@ -20,8 +20,13 @@ async def voice_ws(websocket: WebSocket):
         logger.info(f"Client disconnected: {websocket.client}, session_id={session_id}")
         if session_id:
             unregister_session(session_id)
-        # Telegram Call-Report
         notifier.send(f"Call beendet: session_id={session_id}, client={websocket.client}")
+    except Exception as e:
+        logger.error(f"UNEXPECTED ERROR in ws/voice: {e}", exc_info=True)
+        if session_id:
+            unregister_session(session_id)
+        notifier.send(f"Fehler in Call: session_id={session_id}, client={websocket.client}, error={e}")
+        await websocket.close()
 
 
 # --- Test-WebSocket-Handler für Echo- und Dauerverbindung ---
