@@ -35,6 +35,5 @@ async def voice_webhook():
     start = Start()
     start.stream(url='wss://voicebot1-515ea4753341.herokuapp.com/ws/voice')
     response.append(start)
-    response.say('Sie sind verbunden. Sprechen Sie jetzt.')
-    response.pause(length=30)
+    response.say('Bitte sprechen Sie jetzt.')
     return Response(content=str(response), media_type="application/xml")
