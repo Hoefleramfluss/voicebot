@@ -72,30 +72,43 @@ def sync_audio_generator(q):
         yield chunk
 
 async def transcribe_audio(websocket):
+    logger.info("transcribe_audio: gestartet")
     stt_client = SpeechToTextClient()
     q = queue.Queue()
 
     async def fill_queue():
         try:
             async for chunk in audio_stream_generator(websocket):
+                logger.info(f"transcribe_audio: Audio-Chunk empfangen, len={len(chunk)}")
                 q.put(chunk)
         except Exception as e:
-            logger.warning(f"fill_queue: {e!r}")
+            logger.error(f"fill_queue: {e!r}")
         finally:
+            logger.info("fill_queue: End-Signal (None) wird gesetzt")
             q.put(None)  # End-Signal
 
     asyncio.create_task(fill_queue())
 
-    responses = stt_client.streaming_recognize(sync_audio_generator(q))
-    intent_router = IntentRouter()
-    async for response in responses:
-        for result in response.results:
-            if result.is_final:
-                transcript = result.alternatives[0].transcript
-                logger.info(f"Final: {transcript}")
-                await websocket.send_json({"type": "final", "text": transcript})
-                # Intent-Router aufrufen und Antwort senden
-                intent_result = intent_router.handle(transcript)
-                await websocket.send_json({"type": "intent", **intent_result})
-            else:
-                await websocket.send_json({"type": "interim", "text": result.alternatives[0].transcript})
+    try:
+        responses = stt_client.streaming_recognize(sync_audio_generator(q))
+        logger.info("transcribe_audio: STT-Streaming gestartet")
+        intent_router = IntentRouter()
+        found_result = False
+        async for response in responses:
+            logger.info(f"transcribe_audio: STT-Response erhalten: {response}")
+            for result in response.results:
+                if result.is_final:
+                    transcript = result.alternatives[0].transcript
+                    logger.info(f"Final: {transcript}")
+                    await websocket.send_json({"type": "final", "text": transcript})
+                    # Intent-Router aufrufen und Antwort senden
+                    intent_result = intent_router.handle(transcript)
+                    await websocket.send_json({"type": "intent", **intent_result})
+                    found_result = True
+                else:
+                    logger.info(f"Interim: {result.alternatives[0].transcript}")
+                    await websocket.send_json({"type": "interim", "text": result.alternatives[0].transcript})
+        if not found_result:
+            logger.warning("transcribe_audio: Kein finales Transkript erkannt!")
+    except Exception as e:
+        logger.error(f"transcribe_audio: Exception im STT-Flow: {e!r}")
