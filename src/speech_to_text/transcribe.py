@@ -2,15 +2,24 @@ import base64
 from src.speech_to_text.client import SpeechToTextClient
 from loguru import logger
 
-async def audio_stream_generator(websocket):
+import asyncio
+
+async def audio_stream_generator(websocket, first_chunk_timeout=30):
     logger.info("audio_stream_generator: started")
     got_data = False
     while True:
         try:
-            data = await websocket.receive_bytes()
+            if not got_data:
+                # Warte auf das erste Paket (Timeout)
+                data = await asyncio.wait_for(websocket.receive_bytes(), timeout=first_chunk_timeout)
+            else:
+                data = await websocket.receive_bytes()
             got_data = True
             logger.info(f"Raw WS data: type={type(data)}, len={len(data)}")
             yield base64.b64decode(data)
+        except asyncio.TimeoutError:
+            logger.warning(f"audio_stream_generator: No audio received in {first_chunk_timeout}s, closing.")
+            break
         except RuntimeError as e:
             logger.warning(f"audio_stream_generator: receive_bytes() failed: {e!r}")
             if not got_data:
