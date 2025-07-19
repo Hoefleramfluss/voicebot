@@ -4,10 +4,18 @@ from loguru import logger
 
 async def audio_stream_generator(websocket):
     logger.info("audio_stream_generator: started")
+    got_data = False
     while True:
-        data = await websocket.receive_bytes()
-        logger.info(f"Raw WS data: type={type(data)}, len={len(data)}")
-        yield base64.b64decode(data)
+        try:
+            data = await websocket.receive_bytes()
+            got_data = True
+            logger.info(f"Raw WS data: type={type(data)}, len={len(data)}")
+            yield base64.b64decode(data)
+        except RuntimeError as e:
+            logger.warning(f"audio_stream_generator: receive_bytes() failed: {e!r}")
+            if not got_data:
+                logger.warning("audio_stream_generator: No data received before disconnect!")
+            break
 
 from src.intents.intent_router import IntentRouter
 
