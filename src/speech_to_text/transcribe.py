@@ -11,6 +11,7 @@ async def audio_stream_generator(websocket, first_chunk_timeout=30):
     import datetime
     logger.info("audio_stream_generator: started")
     got_data = False
+    total_chunks = 0
     while True:
         try:
             if not got_data:
@@ -23,6 +24,9 @@ async def audio_stream_generator(websocket, first_chunk_timeout=30):
             if msg["type"] == "websocket.receive":
                 if "bytes" in msg and msg["bytes"] is not None:
                     logger.info(f"[{now}] WS EVENT: type=bytes, len={len(msg['bytes'])}")
+                    logger.info(f"audio_stream_generator: yield BYTES, len={len(msg['bytes'])}, first_bytes={msg['bytes'][:8]}")
+                    total_chunks += 1
+                    logger.info(f"audio_stream_generator: total_chunks={total_chunks}")
                     yield msg["bytes"]
                 elif "text" in msg and msg["text"] is not None:
                     logger.info(f"[{now}] WS EVENT: type=str, len={len(msg['text'])}")
@@ -35,8 +39,10 @@ async def audio_stream_generator(websocket, first_chunk_timeout=30):
                             payload = js["media"]["payload"]
                             decoded = base64.b64decode(payload)
                             logger.info(f"[{now}] Decoded Twilio media.payload to bytes, len={len(decoded)}")
+                            logger.info(f"audio_stream_generator: yield Twilio media BYTES, len={len(decoded)}, first_bytes={decoded[:8]}")
+                            total_chunks += 1
+                            logger.info(f"audio_stream_generator: total_chunks={total_chunks}")
                             yield decoded
-                        # Log all other Twilio event types explizit
                         elif event_type in ["connected", "start", "mark", "stop", "disconnect"]:
                             logger.info(f"[{now}] TWILIO NON-MEDIA EVENT: {event_type}, content: {js}")
                         else:
@@ -45,6 +51,9 @@ async def audio_stream_generator(websocket, first_chunk_timeout=30):
                         try:
                             decoded = base64.b64decode(msg["text"], validate=True)
                             logger.info(f"[{now}] Decoded base64 text to bytes, len={len(decoded)}")
+                            logger.info(f"audio_stream_generator: yield BASE64 BYTES, len={len(decoded)}, first_bytes={decoded[:8]}")
+                            total_chunks += 1
+                            logger.info(f"audio_stream_generator: total_chunks={total_chunks}")
                             yield decoded
                         except (binascii.Error, ValueError):
                             logger.warning(f"[{now}] Text message is not valid base64 or Twilio media JSON, ignoring.")
@@ -77,14 +86,17 @@ async def transcribe_audio(websocket):
     q = queue.Queue()
 
     async def fill_queue():
+        chunk_counter = 0
         try:
             async for chunk in audio_stream_generator(websocket):
-                logger.info(f"transcribe_audio: Audio-Chunk empfangen, len={len(chunk)}")
+                chunk_counter += 1
+                logger.info(f"fill_queue: Chunk {chunk_counter} aus audio_stream_generator empfangen, len={len(chunk)}, first_bytes={chunk[:8]}")
                 q.put(chunk)
+                logger.info(f"fill_queue: Chunk {chunk_counter} in Queue gelegt (qsize={q.qsize()})")
         except Exception as e:
             logger.error(f"fill_queue: {e!r}")
         finally:
-            logger.info("fill_queue: End-Signal (None) wird gesetzt")
+            logger.info(f"fill_queue: End-Signal (None) wird gesetzt, insgesamt {chunk_counter} Chunks verarbeitet")
             q.put(None)  # End-Signal
 
     asyncio.create_task(fill_queue())
@@ -92,11 +104,14 @@ async def transcribe_audio(websocket):
     try:
         chunk_list = []
         def debug_sync_audio_generator(q):
+            chunk_counter = 0
             while True:
                 chunk = q.get()
                 if chunk is None:
+                    logger.info(f"debug_sync_audio_generator: End-Signal empfangen, insgesamt {chunk_counter} Chunks verarbeitet")
                     break
-                logger.info(f"transcribe_audio: Debug-Audio-Chunk: type={type(chunk)}, len={len(chunk)}, first_bytes={chunk[:8] if isinstance(chunk, bytes) else str(chunk)[:8]}")
+                chunk_counter += 1
+                logger.info(f"debug_sync_audio_generator: Chunk {chunk_counter} aus Queue empfangen, type={type(chunk)}, len={len(chunk)}, first_bytes={chunk[:8] if isinstance(chunk, bytes) else str(chunk)[:8]}")
                 chunk_list.append(chunk)
                 yield chunk
         responses = stt_client.streaming_recognize(debug_sync_audio_generator(q))
