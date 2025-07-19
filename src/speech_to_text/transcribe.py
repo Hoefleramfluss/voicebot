@@ -4,24 +4,37 @@ from loguru import logger
 
 import asyncio
 
+import base64
+import binascii
+
 async def audio_stream_generator(websocket, first_chunk_timeout=30):
     logger.info("audio_stream_generator: started")
     got_data = False
     while True:
         try:
             if not got_data:
-                # Warte auf das erste Paket (Timeout)
-                data = await asyncio.wait_for(websocket.receive_bytes(), timeout=first_chunk_timeout)
+                msg = await asyncio.wait_for(websocket.receive(), timeout=first_chunk_timeout)
             else:
-                data = await websocket.receive_bytes()
+                msg = await websocket.receive()
             got_data = True
-            logger.info(f"Raw WS data: type={type(data)}, len={len(data)}")
-            yield base64.b64decode(data)
+            if msg["type"] == "websocket.receive":
+                if "bytes" in msg and msg["bytes"] is not None:
+                    logger.info(f"Raw WS data: type=bytes, len={len(msg['bytes'])}")
+                    yield msg["bytes"]
+                elif "text" in msg and msg["text"] is not None:
+                    logger.info(f"Raw WS data: type=str, len={len(msg['text'])}")
+                    # Versuche base64 zu dekodieren, sonst ignoriere
+                    try:
+                        decoded = base64.b64decode(msg["text"], validate=True)
+                        logger.info(f"Decoded base64 text to bytes, len={len(decoded)}")
+                        yield decoded
+                    except (binascii.Error, ValueError):
+                        logger.warning("Text message is not valid base64, ignoring.")
         except asyncio.TimeoutError:
             logger.warning(f"audio_stream_generator: No audio received in {first_chunk_timeout}s, closing.")
             break
         except RuntimeError as e:
-            logger.warning(f"audio_stream_generator: receive_bytes() failed: {e!r}")
+            logger.warning(f"audio_stream_generator: receive() failed: {e!r}")
             if not got_data:
                 logger.warning("audio_stream_generator: No data received before disconnect!")
             break
