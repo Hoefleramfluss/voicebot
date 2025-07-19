@@ -12,7 +12,6 @@ class SpeechToTextClient:
             auto_decoding_config=speech.AutoDetectDecodingConfig(),
             language_codes=[language_code],
             model="latest_long",
-            sample_rate_hertz=sample_rate,
 
             enable_automatic_punctuation=True,
             enable_word_time_offsets=True,
