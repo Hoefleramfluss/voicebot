@@ -37,6 +37,7 @@ class Config:
     ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
     DEBUG = os.getenv("DEBUG", "false").lower() == "true"
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    LOGGING_TARGET = os.getenv("LOGGING_TARGET", "stdout")
     
     # URLs
     MENU_BREAKFAST_URL = "https://drive.google.com/file/d/1-FwErcbjAHZdDu7fa5B1oKtiHNlQELZv/view?usp=sharing"
