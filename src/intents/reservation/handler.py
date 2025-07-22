@@ -9,6 +9,8 @@ from src.intents.faq.sonntag import is_sunday_reservation, SONNTAGS_HINWEIS, get
 from src.intents.multilang import detect_language, translate
 
 
+from src.utils.elevenlabs import create_elevenlabs_response
+
 def handle_reservation(text, context=None):
     session_id = None
     if context and isinstance(context, dict):
@@ -33,7 +35,7 @@ def handle_reservation(text, context=None):
         abschluss = "Kann ich sonst noch etwas für dich tun?"
         response = " ".join(missing) + " " + upsell + " " + abschluss
         return {
-            "response": response,
+            "response": create_elevenlabs_response(response),
             "intent": "reservierung",
             "parsed": parsed,
             "slot_filling": True
@@ -47,14 +49,14 @@ def handle_reservation(text, context=None):
         abschluss = "Kann ich sonst noch etwas für dich tun?"
         response += f"\n{upsell_recommendation()}\n{abschluss}"
         send_telegram_alert(f"Sonntagsreservierung: {parsed}")
-        return {"response": response, "intent": "reservierung", "sonntag": True, "parsed": parsed}
+        return {"response": create_elevenlabs_response(response), "intent": "reservierung", "sonntag": True, "parsed": parsed}
     # Abschlussfrage zu Anlass, Allergien, Sonderwünschen
     if not parsed.get("occasion") and not parsed.get("special_request") and not parsed.get("children") and not parsed.get("terrace"):
         upsell = upsell_recommendation()
         abschluss = "Kann ich sonst noch etwas für dich tun?"
         response = "Habt ihr was zu feiern? Oder hat wer von euch eine Allergie? Oder sonst noch Wünsche? Wir sorgen für eine schöne Zeit bei uns." + " " + upsell + " " + abschluss
         return {
-            "response": response,
+            "response": create_elevenlabs_response(response),
             "intent": "reservierung",
             "parsed": parsed,
             "slot_filling": "final_optional"
