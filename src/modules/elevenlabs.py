@@ -1,3 +1,5 @@
+# src/utils/elevenlabs.py
+
 import os
 import requests
 import logging
@@ -6,10 +8,9 @@ from fastapi import Request
 
 logging.basicConfig(level=logging.INFO)
 
-# Projekt‐Root (drei Ebenen über src/modules → /app)
+# Projekt‐Root (drei Ebenen über utils → /app)
 BASE_DIR = Path(__file__).resolve().parents[3]
 
-# ENV‑Variablen
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
 
