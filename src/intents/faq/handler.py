@@ -1,4 +1,3 @@
-from src.utils.mailgun_client import send_email
 
 def handle_faq(text, context=None):
     # Beispiel: Wenn nach Speisekarte gefragt wird
