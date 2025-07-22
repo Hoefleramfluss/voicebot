@@ -3,114 +3,81 @@
 import asyncio
 import datetime
 import json
+import base64
 import binascii
 from loguru import logger
 from src.speech_to_text.client import SpeechToTextClient
-from src.config.config import Config  # nur nötig, wenn Du Config tatsächlich verwendest
+# <<< falls Config hier gebraucht wird
+from src.config.config import Config
 
 async def audio_stream_generator(websocket, first_chunk_timeout=30):
-    """
-    Liest Audio‑Chunks (bytes oder base64-Twilio-Payloads) aus dem WebSocket
-    und yieldet rohe Bytes für die STT-Pipeline.
-    """
     logger.info("audio_stream_generator: started")
-    got_data = False
-    total_chunks = 0
-
+    got = False
+    count = 0
     while True:
         try:
-            msg = (
-                await asyncio.wait_for(websocket.receive(), timeout=first_chunk_timeout)
-                if not got_data
-                else await websocket.receive()
-            )
-            got_data = True
-
+            msg = (await asyncio.wait_for(websocket.receive(), timeout=first_chunk_timeout)) if not got else await websocket.receive()
+            got = True
             now = datetime.datetime.utcnow().isoformat()
             logger.info(f"[{now}] WS EVENT: {msg}")
 
-            # Direktes Byte-Payload
-            if msg.get("type") == "websocket.receive" and msg.get("bytes") is not None:
+            if msg.get("bytes") is not None:
                 chunk = msg["bytes"]
-            # Twilio JSON-Payload
-            elif msg.get("type") == "websocket.receive" and msg.get("text"):
-                js = json.loads(msg["text"])
-                if media := js.get("media", {}):
-                    payload = media.get("payload")
-                    chunk = base64.b64decode(payload)
+            elif txt := msg.get("text"):
+                js = json.loads(txt)
+                if media := js.get("media"):
+                    chunk = base64.b64decode(media["payload"])
                 else:
-                    # Falls Text wirklich base64 ist
-                    chunk = base64.b64decode(msg["text"], validate=True)
+                    chunk = base64.b64decode(txt, validate=True)
             else:
-                # Nicht‑Audio‑Event überspringen
-                logger.warning(f"[{now}] Non‑audio message, skipping.")
                 continue
 
-            total_chunks += 1
-            logger.info(f"audio_stream_generator: Chunk #{total_chunks}, len={len(chunk)}")
+            count += 1
+            logger.info(f"audio_stream_generator: Chunk #{count}, len={len(chunk)}")
             yield chunk
 
         except asyncio.TimeoutError:
-            logger.warning(f"audio_stream_generator: No audio in {first_chunk_timeout}s – closing.")
+            logger.warning("No audio in time – closing stream.")
             break
         except (binascii.Error, ValueError):
-            logger.warning("audio_stream_generator: Ungültiges base64, ignoriere Nachricht.")
+            logger.warning("Invalid base64 payload, skipping.")
         except RuntimeError as e:
-            logger.warning(f"audio_stream_generator: receive() Error: {e!r}")
+            logger.warning(f"Receive error: {e}")
             break
 
 async def transcribe_audio(websocket):
-    """
-    Steuert den kompletten Streaming‑Transkriptions‑Flow:
-    1) Audio‑Chunks sammeln
-    2) an Google STT schicken
-    3) Ergebnisse (interim/final) per WebSocket zurücksenden
-    """
     logger.info("transcribe_audio: gestartet")
-    stt_client = SpeechToTextClient()
-
-    # Verpacke asynchrone Generator‑Chunks in eine synchrone Queue
+    stt = SpeechToTextClient()
     import queue
     q = queue.Queue()
 
-    async def fill_queue():
-        count = 0
+    async def fill():
+        c = 0
         async for chunk in audio_stream_generator(websocket):
-            count += 1
-            logger.info(f"fill_queue: Chunk {count}, len={len(chunk)}")
+            c += 1
             q.put(chunk)
-        q.put(None)  # End‑Signal
-        logger.info(f"fill_queue: Fertig, insgesamt {count} Chunks")
+        q.put(None)
+        logger.info(f"fill_queue done, {c} chunks")
 
-    asyncio.create_task(fill_queue())
+    asyncio.create_task(fill())
 
-    # Sync‑Generator für den STT-Client
-    def sync_generator():
-        idx = 0
+    def sync_gen():
+        i = 0
         while True:
-            chunk = q.get()
-            if chunk is None:
-                logger.info("sync_generator: End‑Signal empfangen")
+            ch = q.get()
+            if ch is None:
                 break
-            idx += 1
-            logger.info(f"sync_generator: Yield Chunk {idx}, len={len(chunk)}")
-            yield chunk
+            i += 1
+            yield ch
 
-    # Streaming‑Ergebnis von Google STT verarbeiten
-    try:
-        responses = stt_client.streaming_recognize(sync_generator())
-        async for response in responses:
-            for result in response.results:
-                text = result.alternatives[0].transcript
-                if result.is_final:
-                    logger.info(f"Final Transcript: {text}")
-                    await websocket.send_json({"type": "final", "text": text})
-                    # Intent-Routing
-                    from src.intents.intent_router import IntentRouter
-                    intent = IntentRouter().handle(text)
-                    await websocket.send_json({"type": "intent", **intent})
-                else:
-                    logger.info(f"Interim Transcript: {text}")
-                    await websocket.send_json({"type": "interim", "text": text})
-    except Exception as e:
-        logger.error(f"transcribe_audio: Exception im STT-Flow: {e!r}")
+    responses = stt.streaming_recognize(sync_gen())
+    async for resp in responses:
+        for res in resp.results:
+            txt = res.alternatives[0].transcript
+            if res.is_final:
+                await websocket.send_json({"type": "final", "text": txt})
+                from src.intents.intent_router import IntentRouter
+                intent = IntentRouter().handle(txt)
+                await websocket.send_json({"type": "intent", **intent})
+            else:
+                await websocket.send_json({"type": "interim", "text": txt})

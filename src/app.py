@@ -5,7 +5,7 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from twilio.twiml.voice_response import VoiceResponse, Gather
-# → korrigierter Import-Pfad für Config
+# <<< richtiges Paket
 from src.config.config import Config
 from src.utils.logger import setup_logger
 from src.websocket.server import router as ws_router
@@ -15,19 +15,18 @@ from src.modules.elevenlabs import create_elevenlabs_response
 from loguru import logger
 from pathlib import Path
 
-# Projekt-Root (zwei Ebenen über src/app.py → /app)
+# Zwei Ebenen über src/app.py → zeigt auf /app
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 app = FastAPI(title="VoiceBot")
 
-# Statische Files für TTS-Audio aus /app/static
+# Statische Dateien aus /app/static
 app.mount(
     "/static",
     StaticFiles(directory=str(BASE_DIR / "static")),
     name="static",
 )
 
-# CORS, Logger, Router wie gehabt
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -70,14 +69,10 @@ async def gather_callback(request: Request):
     speech_result = form_data.get('SpeechResult', '').strip()
     confidence = float(form_data.get('Confidence', '0.0'))
     call_sid = form_data.get('CallSid', '')
-
     logger.info(f"Gather-Callback: CallSid={call_sid}, SpeechResult='{speech_result}', Confidence={confidence}")
 
     if speech_result:
-        intent_router = IntentRouter()
-        intent_result = intent_router.handle(speech_result)
-        logger.info(f"Intent-Ergebnis: {intent_result}")
-
+        intent_result = IntentRouter().handle(speech_result)
         tts_text = intent_result.get("text", "Entschuldigung, das habe ich nicht ganz verstandn.")
         tts_twiml = create_elevenlabs_response(tts_text, request)
         twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -86,7 +81,6 @@ async def gather_callback(request: Request):
 </Response>"""
         return Response(content=twiml, media_type="application/xml")
     else:
-        logger.warning(f"Gather-Callback: Kein SpeechResult erhalten. Form-Data: {dict(form_data)}")
         response = VoiceResponse()
         gather = Gather(
             input='speech',

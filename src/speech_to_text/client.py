@@ -2,14 +2,12 @@
 
 import os
 from google.cloud import speech_v1p1beta1 as speech
-# korrigierter Import
+# <<< richtiger Pfad zum Config-Modul
 from src.config.config import Config
 
 class SpeechToTextClient:
     def __init__(self):
-        # Beispiel: Config könnte Deinen GCP-Credentials-Pfad enthalten
-        credentials_path = Config.GOOGLE_CREDENTIALS_PATH
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = Config.GOOGLE_CREDENTIALS_PATH
         self.client = speech.SpeechClient()
 
     def transcribe(self, audio_bytes: bytes, sample_rate_hertz: int = 8000):
@@ -22,5 +20,4 @@ class SpeechToTextClient:
             enable_automatic_punctuation=True
         )
         response = self.client.recognize(config=config, audio=audio)
-        transcripts = [result.alternatives[0].transcript for result in response.results]
-        return " ".join(transcripts)
+        return " ".join(r.alternatives[0].transcript for r in response.results)
