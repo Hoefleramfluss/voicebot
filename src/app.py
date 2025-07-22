@@ -6,7 +6,12 @@ from src.utils.logger import setup_logger
 from src.websocket.server import router as ws_router
 from src.telephony.webhook import router as twilio_router
 
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI(title="VoiceBot")
+
+# Statische Files für TTS-Audio ausliefern
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,

@@ -26,10 +26,14 @@ def create_elevenlabs_response(text):
     }
     response = requests.post(url, json=payload, headers=headers)
     if response.status_code == 200:
-        # Speichere temporäre Datei und gib URL zurück (hier als Platzhalter)
-        # In Produktion: Datei speichern und öffentlich verfügbar machen (z.B. S3, CDN)
-        audio_url = f"https://voicebot-cdn.example.com/tts/{hash(text)}.mp3"
-        # TODO: Audio-File speichern und bereitstellen
+        filename = f"tts_{abs(hash(text))}.mp3"
+        tts_dir = os.path.join(os.path.dirname(__file__), '../../static/tts')
+        os.makedirs(tts_dir, exist_ok=True)
+        filepath = os.path.join(tts_dir, filename)
+        with open(filepath, "wb") as f:
+            f.write(response.content)
+        # Baue die öffentliche URL (Heroku/Prod: /static/tts/...)
+        audio_url = f"/static/tts/{filename}"
         return f'<Play>{audio_url}</Play>'
     else:
         # Fallback: Text als TwiML zurückgeben
