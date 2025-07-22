@@ -1,3 +1,5 @@
+# src/app.py
+
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
@@ -12,19 +14,19 @@ from src.modules.elevenlabs import create_elevenlabs_response
 from loguru import logger
 from pathlib import Path
 
-# Projekt-Root (zwei Ebenen über src/app.py → /app)
+# WICHTIG: Zwei Ebenen über src/app.py → Projekt-Root (/app)
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 app = FastAPI(title="VoiceBot")
 
-# Statische Files für ElevenLabs-Audio (absoluter Pfad zum /static-Verzeichnis)
+# Statische Files für TTS-Audio aus /app/static
 app.mount(
     "/static",
     StaticFiles(directory=str(BASE_DIR / "static")),
     name="static",
 )
 
-# Middleware
+# CORS, Logger, Router wie gehabt
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,11 +34,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Logger
 setup_logger(Config.LOGGING_TARGET)
-
-# Routen
 app.include_router(ws_router)
 app.include_router(twilio_router)
 
@@ -80,7 +78,6 @@ async def gather_callback(request: Request):
         logger.info(f"Intent-Ergebnis: {intent_result}")
 
         tts_text = intent_result.get("text", "Entschuldigung, das habe ich nicht ganz verstandn.")
-        # request mitschicken für URL-Aufbau
         tts_twiml = create_elevenlabs_response(tts_text, request)
         twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
