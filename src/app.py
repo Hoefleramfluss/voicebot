@@ -18,6 +18,10 @@ from pathlib import Path
 # Zwei Ebenen über src/app.py → zeigt auf /app
 BASE_DIR = Path(__file__).resolve().parents[2]
 
+# Sicherstellen, dass das static-Verzeichnis existiert (wichtig für Heroku!)
+static_dir = BASE_DIR / "static"
+static_dir.mkdir(exist_ok=True)
+
 app = FastAPI(title="VoiceBot")
 
 # Statische Dateien aus /app/static
