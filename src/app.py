@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
@@ -11,11 +10,19 @@ from src.telephony.webhook import router as twilio_router
 from src.intents.intent_router import IntentRouter
 from src.modules.elevenlabs import create_elevenlabs_response
 from loguru import logger
+from pathlib import Path
+
+# Projekt-Root (zwei Ebenen über src/app.py → /app)
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 app = FastAPI(title="VoiceBot")
 
-# Statische Files für ElevenLabs-Audio
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Statische Files für ElevenLabs-Audio (absoluter Pfad zum /static-Verzeichnis)
+app.mount(
+    "/static",
+    StaticFiles(directory=str(BASE_DIR / "static")),
+    name="static",
+)
 
 # Middleware
 app.add_middleware(
@@ -62,7 +69,7 @@ async def voice_webhook():
 async def gather_callback(request: Request):
     form_data = await request.form()
     speech_result = form_data.get('SpeechResult', '').strip()
-    confidence = form_data.get('Confidence', '0.0')
+    confidence = float(form_data.get('Confidence', '0.0'))
     call_sid = form_data.get('CallSid', '')
 
     logger.info(f"Gather-Callback: CallSid={call_sid}, SpeechResult='{speech_result}', Confidence={confidence}")
@@ -73,8 +80,13 @@ async def gather_callback(request: Request):
         logger.info(f"Intent-Ergebnis: {intent_result}")
 
         tts_text = intent_result.get("text", "Entschuldigung, das habe ich nicht ganz verstandn.")
-        tts_twiml = create_elevenlabs_response(tts_text)
-        return Response(content=f"<Response>{tts_twiml}</Response>", media_type="application/xml")
+        # request mitschicken für URL-Aufbau
+        tts_twiml = create_elevenlabs_response(tts_text, request)
+        twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  {tts_twiml}
+</Response>"""
+        return Response(content=twiml, media_type="application/xml")
     else:
         logger.warning(f"Gather-Callback: Kein SpeechResult erhalten. Form-Data: {dict(form_data)}")
         response = VoiceResponse()
