@@ -1,26 +1,26 @@
-from google.cloud import speech_v1 as speech
-from config.config import Config
+# src/speech_to_text/client.py
+
 import os
-import json
+from google.cloud import speech_v1p1beta1 as speech
+# korrigierter Import
+from src.config.config import Config
 
 class SpeechToTextClient:
     def __init__(self):
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = Config.GOOGLE_APPLICATION_CREDENTIALS
+        # Beispiel: Config könnte Deinen GCP-Credentials-Pfad enthalten
+        credentials_path = Config.GOOGLE_CREDENTIALS_PATH
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
         self.client = speech.SpeechClient()
 
-    def streaming_recognize(self, audio_generator, language_code="de-DE", sample_rate=8000):
-        from loguru import logger
+    def transcribe(self, audio_bytes: bytes, sample_rate_hertz: int = 8000):
+        audio = speech.RecognitionAudio(content=audio_bytes)
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.MULAW,
-            sample_rate_hertz=sample_rate,
-            language_code=language_code,
+            sample_rate_hertz=sample_rate_hertz,
+            language_code="de-DE",
+            model="phone_call",
+            enable_automatic_punctuation=True
         )
-        logger.info(f"SpeechToTextClient: RecognitionConfig: encoding={config.encoding}, sample_rate_hertz={config.sample_rate_hertz}, language_code={config.language_code}")
-        def request_generator():
-            chunk_count = 0
-            for chunk in audio_generator:
-                chunk_count += 1
-                if chunk_count <= 3:
-                    logger.info(f"SpeechToTextClient: Audio-Chunk {chunk_count}: type={type(chunk)}, len={len(chunk)}, first_bytes={chunk[:8] if isinstance(chunk, bytes) else str(chunk)[:8]}")
-                yield speech.StreamingRecognizeRequest(audio_content=chunk)
-        return self.client.streaming_recognize(config=config, requests=request_generator())
+        response = self.client.recognize(config=config, audio=audio)
+        transcripts = [result.alternatives[0].transcript for result in response.results]
+        return " ".join(transcripts)
