@@ -5,7 +5,8 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from twilio.twiml.voice_response import VoiceResponse, Gather
-from config.config import Config
+# → korrigierter Import-Pfad für Config
+from src.config.config import Config
 from src.utils.logger import setup_logger
 from src.websocket.server import router as ws_router
 from src.telephony.webhook import router as twilio_router
@@ -14,7 +15,7 @@ from src.modules.elevenlabs import create_elevenlabs_response
 from loguru import logger
 from pathlib import Path
 
-# WICHTIG: Zwei Ebenen über src/app.py → Projekt-Root (/app)
+# Projekt-Root (zwei Ebenen über src/app.py → /app)
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 app = FastAPI(title="VoiceBot")
