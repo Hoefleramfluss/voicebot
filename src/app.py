@@ -49,6 +49,16 @@ app.include_router(twilio_router)
 def root():
     return {"status": "VoiceBot API running"}
 
+@app.get("/static-test")
+def static_test():
+    import os
+    tts_dir = "/tmp/static/tts"
+    if not os.path.exists(tts_dir):
+        return {"tts_files": [], "msg": "Verzeichnis nicht vorhanden"}
+    files = [f for f in os.listdir(tts_dir) if f.endswith('.mp3')]
+    urls = [f"/static/tts/{f}" for f in files]
+    return {"tts_files": files, "urls": urls}
+
 @app.post("/voice")
 async def voice_webhook():
     # Begrüßung und Prompt via ElevenLabs TTS
