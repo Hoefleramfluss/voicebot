@@ -21,8 +21,6 @@ def create_elevenlabs_response(text: str) -> str:
         "Content-Type": "application/json"
     }
 
-
- 
     payload = {
         "text": text,
         "voice_settings": {
@@ -49,4 +47,3 @@ def create_elevenlabs_response(text: str) -> str:
     else:
         logging.error(f"[TTS] API-Fehler: {response.status_code} - {response.text}")
         return f"<Say language='de-AT'>{text}</Say>"
- 
