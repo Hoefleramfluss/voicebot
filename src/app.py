@@ -14,17 +14,24 @@ from src.intents.intent_router import IntentRouter
 from src.modules.elevenlabs import create_elevenlabs_response
 from loguru import logger
 from pathlib import Path
+import os
 
 # Zwei Ebenen über src/app.py → zeigt auf /app
 BASE_DIR = Path(__file__).resolve().parents[2]
 
-
 app = FastAPI(title="VoiceBot")
+
+STATIC_DIR = BASE_DIR / "static"
+
+# Workaround: Lege static-Verzeichnis an, falls es nicht existiert (Heroku entfernt leere Ordner)
+if not STATIC_DIR.exists():
+    STATIC_DIR.mkdir(parents=True, exist_ok=True)
+    (STATIC_DIR / "tts").mkdir(parents=True, exist_ok=True)
 
 # Statische Dateien aus /app/static
 app.mount(
     "/static",
-    StaticFiles(directory=str(BASE_DIR / "static")),
+    StaticFiles(directory=str(STATIC_DIR)),
     name="static",
 )
 
