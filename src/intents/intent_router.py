@@ -107,6 +107,15 @@ class IntentRouter:
             # Handler für neuen Intent aufrufen
             session_context.set(session_id, "last_intent", intent)
             session_context.clear_pending_intent(session_id)
+            def ensure_text_key(result):
+                if isinstance(result, dict):
+                    if "text" not in result:
+                        if "response" in result:
+                            result["text"] = result["response"]
+                        else:
+                            result["text"] = "Entschuldigung, das habe ich nicht ganz verstanden."
+                return result
+
             if intent == "reservierung":
                 result = handle_reservation(text, context)
             elif intent == "faq":
@@ -130,6 +139,7 @@ class IntentRouter:
             # Personalisierung: Name in die neue Antwort einbauen, falls vorhanden
             if name and "response" in result:
                 result["response"] = result["response"].replace("{{name}}", name)
+            result = ensure_text_key(result)
             return {"response": response, "interrupted": True, "interrupted_intent": last_intent, **result}
 
         # Bestätigungsantworten für Reservierung erkennen
