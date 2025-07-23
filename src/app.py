@@ -21,13 +21,13 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 app = FastAPI(title="VoiceBot")
 
-# Heroku: Schreibe statische Dateien nach /tmp/static
-STATIC_DIR = Path("/tmp/static")
+# Schreibe statische Dateien nach BASE_DIR/static (wie ursprünglich)
+STATIC_DIR = BASE_DIR / "static"
 TTS_DIR = STATIC_DIR / "tts"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 TTS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Statische Dateien aus /tmp/static
+# Statische Dateien aus BASE_DIR/static
 app.mount(
     "/static",
     StaticFiles(directory=str(STATIC_DIR)),
