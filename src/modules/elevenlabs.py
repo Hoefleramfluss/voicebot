@@ -8,7 +8,10 @@ logging.basicConfig(level=logging.INFO)
 # Heroku: Schreibe TTS nach /tmp/static/tts
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
-BASE_URL = os.getenv("BASE_URL", "https://voicebot1-515ea4753341.herokuapp.com")
+BASE_URL = os.getenv("BASE_URL")
+if not BASE_URL:
+    BASE_URL = "https://voicebot1-515ea4753341.herokuapp.com"
+    logging.warning(f"[TTS] BASE_URL not gesetzt, benutze Default: {BASE_URL}")
 STATIC_DIR = Path("/tmp/static")
 TTS_DIR = STATIC_DIR / "tts"
 
