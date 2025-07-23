@@ -38,6 +38,8 @@ async def gather_callback(request: Request):
 
     # ElevenLabs TTS erzeugen
     tts_twiml = create_elevenlabs_response(gpt_text)
-    r.append(VoiceResponse().from_xml(f"<Response>{tts_twiml}</Response>"))
-
-    return Response(content=str(r), media_type="application/xml")
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  {tts_twiml}
+</Response>"""
+    return Response(content=twiml, media_type="application/xml")
