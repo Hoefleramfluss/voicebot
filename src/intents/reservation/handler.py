@@ -19,8 +19,6 @@ def handle_reservation(text, context):
     session_id = context.get("session_id") if isinstance(context, dict) else None
     user_name = context.get("name") if context else None
     if not user_name:
-        user_name = session_context.get(session_id, "name") if session_id else None
-    if not user_name:
         user_name = "Gast"
     # Immer: Begrüßung
     if not session_context.get(session_id, "reservation_started"):

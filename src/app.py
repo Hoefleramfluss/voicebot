@@ -101,36 +101,12 @@ async def gather_callback(request: Request):
     if speech_result:
         # --- NEU: Reservierungs-Keywords direkt abfangen und an Reservierungsflow geben ---
         reservierungs_keywords = [
-            "reservier", "tisch", "platz", "tische", "tisch reservieren", "platz reservieren", "reservierung", "tischbestellung", "platzbestellung"
+            "reservier", "tisch", "platz", "tische", "tisch reservieren", "platz reservieren", "reservierung", "tischbestellung", "platzbestellung",
+            "resavier", "resavieren", "reschiwan", "reschiwieren", "tischl", "stammtisch", "buchen", "platzl", "platzl reservieren"
         ]
         if any(kw in speech_result.lower() for kw in reservierungs_keywords):
-            name = session_context.get(call_sid, "name")
-            if not name:
-                # Name fehlt: explizite Namensabfrage für Reservierung
-                session_context.set(call_sid, "pending_intent", "reservierung")
-                tts_text = "Für die Reservierung brauche ich noch deinen Namen. Wie darf ich dich nennen?"
-                tts_mp3_url = create_elevenlabs_response(tts_text, request)
-                response = VoiceResponse()
-                gather = Gather(
-                    input='speech',
-                    action='/gather',
-                    method='POST',
-                    language='de-DE',
-                    speechModel='phone_call',
-                    speechTimeout='auto',
-                    timeout=8,
-                    actionOnEmptyResult=True,
-                    profanityFilter=False,
-                    hints='Chris, Anna, Max, Julia, mein Name ist ...'
-                )
-                # <Play> statt <Say> wegen TTS
-                gather.play(tts_mp3_url.split('>')[1].split('<')[0])
-                response.append(gather)
-                response.say('Auf Wiederschaun.')
-                response.hangup()
-                return Response(content=str(response), media_type="application/xml")
             from src.intents.reservation.handler import handle_reservation
-            context = {"session_id": call_sid, "name": name}
+            context = {"session_id": call_sid}
             intent_result = handle_reservation(speech_result, context)
             tts_text = intent_result.get("text", "Entschuldigung, das habe ich nicht ganz verstandn.")
             tts_twiml = create_elevenlabs_response(tts_text, request)
@@ -153,10 +129,9 @@ async def gather_callback(request: Request):
             speechTimeout='auto',
             timeout=8,
             actionOnEmptyResult=True,
-            profanityFilter=False,
-            hints='Hallo, Hilfe, Information, Termin, Bestellung, Support'
+            profanityFilter=False
         )
-        gather.say('Wie kann ich dir helfen? Sprich bitte deutlich.')
+        gather.say('Wie kann ich dir helfen? Sprich bitte frei und deutlich.')
         response.append(gather)
         response.say('Auf Wiederschaun.')
         response.hangup()
