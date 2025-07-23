@@ -96,9 +96,26 @@ async def gather_callback(request: Request):
                 # Name fehlt: explizite Namensabfrage für Reservierung
                 session_context.set(call_sid, "pending_intent", "reservierung")
                 tts_text = "Für die Reservierung brauche ich noch deinen Namen. Wie darf ich dich nennen?"
-                tts_twiml = create_elevenlabs_response(tts_text, request)
-                twiml = f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  {tts_twiml}\n</Response>"""
-                return Response(content=twiml, media_type="application/xml")
+                tts_mp3_url = create_elevenlabs_response(tts_text, request)
+                response = VoiceResponse()
+                gather = Gather(
+                    input='speech',
+                    action='/gather',
+                    method='POST',
+                    language='de-DE',
+                    speechModel='phone_call',
+                    speechTimeout='auto',
+                    timeout=8,
+                    actionOnEmptyResult=True,
+                    profanityFilter=False,
+                    hints='Chris, Anna, Max, Julia, mein Name ist ...'
+                )
+                # <Play> statt <Say> wegen TTS
+                gather.play(tts_mp3_url.split('>')[1].split('<')[0])
+                response.append(gather)
+                response.say('Auf Wiederschaun.')
+                response.hangup()
+                return Response(content=str(response), media_type="application/xml")
             from src.intents.reservation.handler import handle_reservation
             context = {"session_id": call_sid, "name": name}
             intent_result = handle_reservation(speech_result, context)
