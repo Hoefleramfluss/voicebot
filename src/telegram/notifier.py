@@ -1,24 +1,15 @@
-import requests
-from config.config import Config
+# src/telegram/notifier.py
+
 from loguru import logger
+# <<< richtiger Pfad
+from src.config.config import Config
 
-class TelegramNotifier:
-    def __init__(self, token: str, chat_id: str):
-        self.token = token
-        self.chat_id = chat_id
-
-    def send(self, message: str):
-        url = f"https://api.telegram.org/bot{self.token}/sendMessage"
-        data = {"chat_id": self.chat_id, "text": message}
-        try:
-            response = requests.post(url, json=data, timeout=5)
-            response.raise_for_status()
-            logger.info(f"Telegram-Message sent: {message}")
-        except Exception as e:
-            logger.error(f"Telegram: Fehler beim Senden: {e}")
-
-    def send_team_alert(self, subject: str, details: str):
-        msg = f"[VoiceBot-ALERT] {subject}\n{details}"
-        self.send(msg)
-
-notifier = TelegramNotifier(Config.TELEGRAM_BOT_TOKEN, Config.TELEGRAM_CHAT_ID)
+def notifier(message: str) -> None:
+    try:
+        # Beispiel: python-telegram-bot
+        from telegram import Bot
+        bot = Bot(token=Config.TELEGRAM_TOKEN)
+        bot.send_message(chat_id=Config.TELEGRAM_CHAT_ID, text=message)
+        logger.info(f"Telegram‑Notifikation gesendet: {message}")
+    except Exception as e:
+        logger.error(f"Fehler beim Telegram‑Senden: {e!r}")

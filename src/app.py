@@ -1,17 +1,31 @@
 from fastapi import FastAPI, Request
 from starlette.websockets import WebSocket
 from starlette.middleware.cors import CORSMiddleware
+<<<<<<< HEAD
 from config.config import Config
+=======
+from twilio.twiml.voice_response import VoiceResponse, Gather
+# <<< richtiges Paket
 from src.utils.logger import setup_logger
 from src.websocket.server import router as ws_router
 from src.telephony.webhook import router as twilio_router
-
+from src.intents.intent_router import IntentRouter
+from src.modules.elevenlabs import create_elevenlabs_response
+from loguru import logger
+from pathlib import Path
 from fastapi.staticfiles import StaticFiles
+
+# Projekt-Root (zwei Ebenen über src/app.py → /app)
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 app = FastAPI(title="VoiceBot")
 
-# Statische Files für TTS-Audio ausliefern
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Statische Files für ElevenLabs-Audio (absoluter Pfad zum /static-Verzeichnis)
+app.mount(
+    "/static",
+    StaticFiles(directory=str(BASE_DIR / "static")),
+    name="static",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -74,12 +88,16 @@ async def gather_callback(request: Request):
     speech_result = form_data.get('SpeechResult', '').strip()
     confidence = form_data.get('Confidence', '0.0')
     call_sid = form_data.get('CallSid', '')
+<<<<<<< HEAD
     
+=======
+>>>>>>> 267902f (Fix all Config imports and ensure package structure)
     logger.info(f"Gather-Callback: CallSid={call_sid}, SpeechResult='{speech_result}', Confidence={confidence}")
     
     response = VoiceResponse()
     
     if speech_result:
+<<<<<<< HEAD
         # Intent-Router für Spracherkennung
         intent_router = IntentRouter()
         intent_result = intent_router.handle(speech_result)
@@ -94,6 +112,19 @@ async def gather_callback(request: Request):
         
         # Weitere Eingabe möglich machen
         gather_again = Gather(
+=======
+        intent_result = IntentRouter().handle(speech_result)
+        tts_text = intent_result.get("text", "Entschuldigung, das habe ich nicht ganz verstandn.")
+        tts_twiml = create_elevenlabs_response(tts_text, request)
+        twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  {tts_twiml}
+</Response>"""
+        return Response(content=twiml, media_type="application/xml")
+    else:
+        response = VoiceResponse()
+        gather = Gather(
+>>>>>>> 267902f (Fix all Config imports and ensure package structure)
             input='speech',
             action='/gather',
             method='POST',
