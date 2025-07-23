@@ -88,10 +88,19 @@ async def gather_callback(request: Request):
     reservierungs_keywords = [
         "reservier", "tisch", "platz", "tische", "tisch reservieren", "platz reservieren", "reservierung", "tischbestellung", "platzbestellung"
     ]
+    from src.websocket.session_context import session_context
     if speech_result:
         if any(kw in speech_result.lower() for kw in reservierungs_keywords):
+            name = session_context.get(call_sid, "name")
+            if not name:
+                # Name fehlt: explizite Namensabfrage für Reservierung
+                session_context.set(call_sid, "pending_intent", "reservierung")
+                tts_text = "Für die Reservierung brauche ich noch deinen Namen. Wie darf ich dich nennen?"
+                tts_twiml = create_elevenlabs_response(tts_text, request)
+                twiml = f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  {tts_twiml}\n</Response>"""
+                return Response(content=twiml, media_type="application/xml")
             from src.intents.reservation.handler import handle_reservation
-            context = {"session_id": call_sid}
+            context = {"session_id": call_sid, "name": name}
             intent_result = handle_reservation(speech_result, context)
             tts_text = intent_result.get("text", "Entschuldigung, das habe ich nicht ganz verstandn.")
             tts_twiml = create_elevenlabs_response(tts_text, request)

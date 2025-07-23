@@ -42,6 +42,22 @@ class IntentRouter:
         # Analytics: Logge jeden Call und Intent
         self.analytics.log_call()
 
+        # Einstieg: Wenn kein Name im Kontext, aber pending_intent==reservierung, dann Namenerkennung und zurück in Reservierungsflow
+        pending_intent = session_context.get(session_id, "pending_intent") if session_id else None
+        if not name and pending_intent == "reservierung":
+            from src.intents.name.handler import handle_name
+            name_result = handle_name(text, session_id)
+            if name_result.get("name"):
+                # Name erkannt, zurück in Reservierungsflow
+                session_context.set(session_id, "pending_intent", None)
+                from src.intents.reservation.handler import handle_reservation
+                context = dict(context) if context else {}
+                context["name"] = name_result["name"]
+                context["session_id"] = session_id
+                return handle_reservation("", context)
+            else:
+                return name_result
+
         # Einstieg: Wenn kein Name im Kontext, frage nach Name
         if not name:
             if last_intent == "name":
