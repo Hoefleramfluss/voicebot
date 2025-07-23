@@ -51,24 +51,20 @@ def root():
 
 @app.post("/voice")
 async def voice_webhook():
-    response = VoiceResponse()
-    gather = Gather(
-        input='speech',
-        action='/gather',
-        method='POST',
-        language='de-DE',
-        speechModel='phone_call',
-        speechTimeout='auto',
-        timeout=10,
-        actionOnEmptyResult=True,
-        profanityFilter=False,
-        hints='Hallo, Hilfe, Information, Termin, Bestellung, Support'
-    )
-    gather.say('Hallo! Wie kann ich dir helfen? Sprich einfach drauf los.')
-    response.append(gather)
-    response.say('Entschuldigung, i hob di ned verstandn. Auf Wiederschaun.')
-    response.hangup()
-    return Response(content=str(response), media_type="application/xml")
+    # Begrüßung und Prompt via ElevenLabs TTS
+    greet_text = "Hallo! Wie kann ich dir helfen? Sprich einfach drauf los."
+    tts_greet = create_elevenlabs_response(greet_text)
+    fallback_text = "Entschuldigung, i hob di ned verstandn. Auf Wiederschaun."
+    tts_fallback = create_elevenlabs_response(fallback_text)
+    twiml = f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<Response>
+  {tts_greet}
+  <Gather input='speech' action='/gather' method='POST' language='de-DE' speechModel='phone_call' speechTimeout='auto' timeout='10' actionOnEmptyResult='true' profanityFilter='false' hints='Hallo, Hilfe, Information, Termin, Bestellung, Support'>
+  </Gather>
+  {tts_fallback}
+  <Hangup/>
+</Response>"""
+    return Response(content=twiml, media_type="application/xml")
 
 @app.post("/gather")
 async def gather_callback(request: Request):
