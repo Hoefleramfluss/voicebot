@@ -12,6 +12,9 @@ BASE_URL = os.getenv("BASE_URL")
 if not BASE_URL:
     BASE_URL = "https://voicebot1-515ea4753341.herokuapp.com"
     logging.warning(f"[TTS] BASE_URL not gesetzt, benutze Default: {BASE_URL}")
+if not BASE_URL.startswith("http"):
+    BASE_URL = "https://" + BASE_URL.lstrip(":/")
+    logging.warning(f"[TTS] BASE_URL hatte kein Protokoll, wurde korrigiert auf: {BASE_URL}")
 STATIC_DIR = Path("/tmp/static")
 TTS_DIR = STATIC_DIR / "tts"
 
