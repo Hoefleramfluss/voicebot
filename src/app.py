@@ -62,7 +62,7 @@ def static_test():
 @app.post("/voice")
 async def voice_webhook():
     # Begrüßung und Prompt via ElevenLabs TTS
-    greet_text = "Hallo! Wie kann ich dir helfen? Sprich einfach drauf los."
+    greet_text = "Servus beim Höfler am Fluss. Deiner Location mit Fluss-Vibes. Ich bin der Toni. Was kann ich dir gutes tun ?"
     tts_greet = create_elevenlabs_response(greet_text)
     fallback_text = "Entschuldigung, i hob di ned verstandn. Auf Wiederschaun."
     tts_fallback = create_elevenlabs_response(fallback_text)
