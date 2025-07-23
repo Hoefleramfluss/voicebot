@@ -5,10 +5,12 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+# Heroku: Schreibe TTS nach /tmp/static/tts
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
 BASE_URL = os.getenv("BASE_URL", "https://hoefler-voicebot.herokuapp.com")
+STATIC_DIR = Path("/tmp/static")
+TTS_DIR = STATIC_DIR / "tts"
 
 def create_elevenlabs_response(text: str) -> str:
     """
@@ -31,9 +33,8 @@ def create_elevenlabs_response(text: str) -> str:
     response = requests.post(url, json=payload, headers=headers)
     if response.status_code == 200:
         filename = f"tts_{abs(hash(text))}.mp3"
-        tts_dir = BASE_DIR / "static" / "tts"
-        tts_dir.mkdir(parents=True, exist_ok=True)
-        filepath = tts_dir / filename
+        TTS_DIR.mkdir(parents=True, exist_ok=True)
+        filepath = TTS_DIR / filename
         try:
             with open(filepath, "wb") as f:
                 f.write(response.content)
