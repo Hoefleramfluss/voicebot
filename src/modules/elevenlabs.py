@@ -9,8 +9,7 @@ logging.basicConfig(level=logging.INFO)
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
 BASE_URL = os.getenv("BASE_URL", "https://voicebot1-515ea4753341.herokuapp.com")
-BASE_DIR = Path(__file__).resolve().parents[2]
-STATIC_DIR = BASE_DIR / "static"
+STATIC_DIR = Path("/tmp/static")
 TTS_DIR = STATIC_DIR / "tts"
 
 def create_elevenlabs_response(text: str) -> str:
