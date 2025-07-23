@@ -84,14 +84,24 @@ async def gather_callback(request: Request):
     call_sid = form_data.get('CallSid', '')
     logger.info(f"Gather-Callback: CallSid={call_sid}, SpeechResult='{speech_result}', Confidence={confidence}")
 
+    # --- NEU: Reservierungs-Keywords direkt abfangen und an Reservierungsflow geben ---
+    reservierungs_keywords = [
+        "reservier", "tisch", "platz", "tische", "tisch reservieren", "platz reservieren", "reservierung", "tischbestellung", "platzbestellung"
+    ]
     if speech_result:
+        if any(kw in speech_result.lower() for kw in reservierungs_keywords):
+            from src.intents.reservation.handler import handle_reservation
+            context = {"session_id": call_sid}
+            intent_result = handle_reservation(speech_result, context)
+            tts_text = intent_result.get("text", "Entschuldigung, das habe ich nicht ganz verstandn.")
+            tts_twiml = create_elevenlabs_response(tts_text, request)
+            twiml = f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  {tts_twiml}\n</Response>"""
+            return Response(content=twiml, media_type="application/xml")
+        # Standard-Intent-Routing
         intent_result = IntentRouter().handle(speech_result)
         tts_text = intent_result.get("text", "Entschuldigung, das habe ich nicht ganz verstandn.")
         tts_twiml = create_elevenlabs_response(tts_text, request)
-        twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  {tts_twiml}
-</Response>"""
+        twiml = f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  {tts_twiml}\n</Response>"""
         return Response(content=twiml, media_type="application/xml")
     else:
         response = VoiceResponse()
